@@ -17,8 +17,8 @@ class AdminController extends AppController {
 
     function index($forward_page=0, $growl=''){
         
-        if(is_null($this->Session->read('login_login_id'))) $this->redirect(array('controller' => 'login', 'action' => 'timeout'));
-        $this->set('growl', $growl);
+//        if(is_null($this->Session->read('login_login_id'))) $this->redirect(array('controller' => 'login', 'action' => 'timeout'));
+//        $this->set('growl', $growl);
 
         $checklist_mode = "";
         if(isset($this->data["checklist_mode"])) $checklist_mode = $this->data["checklist_mode"];
