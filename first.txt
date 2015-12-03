@@ -1,1 +1,474 @@
-1
+<?php
+
+require_once "entry_controller.php";
+
+class AdminController extends AppController {
+    
+    var $name = "Admin";
+    var $uses = array("Entry");
+    //var $autoRender = false;
+    var $autoLayout = false;
+    //var $layout = "sample";
+    //var $components = array('Auth');
+
+    function beforeFilter(){
+        $this->Session->read('Config');
+    }
+
+    function index($forward_page=0, $growl=''){
+        
+        if(is_null($this->Session->read('login_login_id'))) $this->redirect(array('controller' => 'login', 'action' => 'timeout'));
+        $this->set('growl', $growl);
+
+        $checklist_mode = "";
+        if(isset($this->data["checklist_mode"])) $checklist_mode = $this->data["checklist_mode"];
+        // 「支払い済みにする」なら、action呼び出ししてreturn
+        if($checklist_mode=='status') return $this->setAction('allStatus', '1');
+        // 「通知完了にする」なら、action呼び出ししてreturn
+        if($checklist_mode=='note') return $this->setAction('allNote', '1');
+        // 「発送完了にする」なら、Daction呼び出ししてreturn
+        if($checklist_mode=='handle') return $this->setAction('allHandle', '1');
+
+        App::uses('Sanitize', 'Utility');
+
+        $doclear = "";
+        if(isset($this->data["doclear"])) $doclear = $this->data["doclear"];
+        $dosearch = "";
+        if(isset($this->data["dosearch"])) $dosearch = $this->data["dosearch"];
+
+        // チェックボックスリストの配列を、ここでクリアする
+        if($doclear || $dosearch) $this->Session->write('admin_checked_entries', array());
+
+        $paging = false;
+        $page = 0;
+        if($forward_page) $this->params["page"]=$forward_page;
+        if(isset($this->params["page"]) && is_numeric($this->params["page"])){
+            $paging = true;
+            $page = $this->params["page"];
+        }
+        $this->Session->write('admin_page', $page);
+        $this->set('admin_page', $page);
+
+        // 全プランリスト作成
+        $plan_list = EntryController::planInfo('all');
+
+        // in:抽出条件：プラン
+        $plan_checked = array();
+        $plan_input = array();
+        // pager経由ならセッションから復元
+        if($paging){
+            $s_plans = $this->Session->read('admin_plans');
+            if(!is_null($s_plans)){
+                $plan_input = $s_plans;
+            }
+        }else{
+            if(!$doclear){
+                if(isset($this->data["plans"])){
+                    $plan_input = $this->data["plans"];
+                }else{
+                    $plan_input = array();
+                }
+                $this->Session->write('admin_plans', $plan_input);
+            }
+        }
+        foreach($plan_input as $key=>$val){
+            if(isset($plan_list[$key])) {
+                $plan_list[$key]['checked'] = 1;
+                $plan_checked[] = $key;
+            }
+        }
+        $this->set('plan_list', $plan_list);
+
+
+        // in:抽出条件：ステータス
+        $statuses = array(0=>0, 1=>0, 2=>0);
+        // pager経由ならセッションから復元
+        if($paging){
+            $s_statuses = $this->Session->read('admin_statuses');
+            if(!is_null($s_statuses)){
+                $statuses = $s_statuses;
+            }
+        }else{
+            if(!$doclear){
+                if(isset($this->data["statuses"])){
+                    $status_raw = $this->data["statuses"];
+                    if(isset($status_raw[0])) $statuses[0] = 1;
+                    if(isset($status_raw[1])) $statuses[1] = 1;
+                    if(isset($status_raw[2])) $statuses[2] = 1;
+                }
+            }
+            $this->Session->write('admin_statuses', $statuses);
+        }
+        
+        $this->set('statuses', $statuses);
+
+
+        // in:抽出条件：名前／メールアドレスで絞込み(部分一致)
+        $word = '';
+        // pager経由ならセッションから復元
+        if($paging){
+            $s_word = $this->Session->read('admin_word');
+            if(!is_null($s_word)){
+                $word = $s_word;
+            }
+        }else{
+            if(isset($this->data["word"])) if(!$doclear) $word = Sanitize::stripAll($this->data["word"]);
+            $this->Session->write('admin_word', $word);
+        }
+        $this->set('word', $word);
+        
+        // リストのチェックボックス　チェック状況
+        $checked_entries = $this->Session->read('admin_checked_entries');
+        if(is_null($checked_entries)){
+            $checked_entries = array();
+        }
+        
+        // DBに問い合わせ
+        $cnt = $this->Entry->entryCount($plan_checked, $statuses, $word);
+        $this->set('entry_count', $cnt[0][0]['cnt']);
+        
+        $amt = $this->Entry->entryAmount();
+        $this->set('entry_amount', $amt[0][0]['amount']);
+        
+        $list = $this->Entry->entryList($page, $plan_checked, $statuses, $word);
+        if($list===false) $list = array();
+        foreach ($list as $key=>$row){
+            $checked=false;
+            if(isset($checked_entries[$row[0]['id']])){
+                $checked=true;
+            }
+            $list[$key][0]['checked'] = $checked;
+        }
+        $this->set('entry_list', $list);
+        
+        
+        // pager
+        $this->set('pager_max', ceil($cnt[0][0]['cnt'] / 20));
+        $pager_disp = '&nbsp;';
+        if(count($list)>0) $pager_disp = ($page*20+1) . '〜' .($page*20+count($list)). '件を表示';
+        $this->set('pager_disp', $pager_disp);
+        
+        $this->set('status_list', EntryController::statusInfo('all'));
+        $this->set('note_list', EntryController::noteInfo('all'));
+        $this->set('handle_list', EntryController::handleInfo('all'));
+        
+        
+    }
+
+
+
+    function edit(){
+
+        if(is_null($this->Session->read('login_login_id'))) $this->redirect(array('controller' => 'login', 'action' => 'timeout'));
+        $this->set('growl', '');
+        $this->set('admin_page', $this->Session->read('admin_page'));
+        foreach($this->columns() as $column) $this->set("error_".$column, '');
+
+        $entry_id = 0;
+        if(isset($this->params["entry_id"]) && is_numeric($this->params["entry_id"])){
+            $entry_id = $this->params["entry_id"];
+        }
+
+        $doclear = "";
+        if(isset($this->data["doclear"])) $doclear = $this->data["doclear"];
+        if($doclear && $entry_id>0){
+            $entry = $this->Entry->removeEntry($entry_id);
+            foreach($this->columns() as $column) $this->Session->write('admin_edit_'.$column, '');
+            return $this->setAction("index", $this->Session->read('admin_page'), "$.jGrowl('削除しました。');");
+        }
+
+        // 応募を削除する
+        $doreg = "";
+        // 応募を削除する、をキャンセルする
+        $doregcancel = "";
+        if(isset($this->data["doreg"])) $doreg = $this->data["doreg"];
+        if(isset($this->data["doregcancel"])) $doregcancel = $this->data["doregcancel"];
+        if($doreg && $entry_id>0){
+            if(!$doregcancel){
+                // 「応募を削除する」なら、DBから削除してreturn
+                return $this->setAction('reg', '1', $entry_id);
+            }else{
+                // 「応募を削除する、をキャンセル」なら、編集中の情報を入力情報として復元し、編集画面へ
+                foreach($this->columns() as $column) $this->data[$column] = $this->Session->read('admin_edit_'.$column);
+            }
+        }
+        $this->set('prefecture_list', EntryController::prefecture());
+        $this->set('status_list', EntryController::statusInfo('all'));
+        $this->set('note_list', EntryController::noteInfo('all'));
+        $this->set('handle_list', EntryController::handleInfo('all'));
+        $this->set('plan_list', EntryController::planInfo('all'));
+        
+        $amt = $this->Entry->entryAmount();
+        $this->set('entry_amount', $amt[0][0]['amount']);
+
+        // 開いたばかりなら、画面に表示する
+        if(!isset($this->data['note']) || !$this->Session->read('admin_edit_plan')){
+            // Entry 情報をselect
+            $entry = $this->Entry->getEntry($entry_id);
+            if(count($entry)===0){
+                return $this->redirect('/admin/');
+            }
+
+            $this->set('entry', $entry);
+            $this->Session->write('admin_edit_email', $entry[0][0]['email']);
+            $this->Session->write('admin_edit_plan', $entry[0][0]['plan']);
+            $this->Session->write('admin_edit_comment', $entry[0][0]['comment']);
+
+            // 編集前データを記憶しておく（何を変更したか判定するため）
+            foreach($this->columns() as $column) $this->Session->write('admin_edit_org_'.$column, $entry[0][0][$column]);
+            return;
+        }
+        
+        App::uses('Sanitize', 'Utility');
+
+        $entry = array(array(array()));
+        foreach($this->columns() as $column) $entry[0][0][$column]=$this->data[$column];
+        $entry[0][0]['id']        = $entry_id;
+        $entry[0][0]['plan']      = $this->Session->read('admin_edit_plan');
+        $entry[0][0]['comment']   = $this->Session->read('admin_edit_comment');
+        $this->set("entry", $entry);
+
+        $family_name      = Sanitize::stripAll($this->data["family_name"]);
+        $given_name       = Sanitize::stripAll($this->data["given_name"]);
+        $email            = Sanitize::stripAll($this->data["email"]);
+        $amount           = Sanitize::stripAll($this->data["amount"]);
+        $zipcode          = Sanitize::stripAll($this->data["zipcode"]);
+        $prefecture       = Sanitize::stripAll($this->data["prefecture"]);
+        $address          = Sanitize::stripWhitespace($this->data["address"]);
+        $tel              = Sanitize::stripAll($this->data["tel"]);
+        $status           = Sanitize::stripAll($this->data["status"]);
+        $note             = Sanitize::stripAll($this->data["note"]);
+        $handle           = Sanitize::stripAll($this->data["handle"]);
+        $this->set("prefecture", $prefecture);
+
+        $is_error = false;
+
+        // ここから、entry_controllerからのコピー
+        $error_family_name = '';
+        $error_address = '';
+        $error_email = '';
+
+        if($family_name===''){
+            EntryController::errorMessage("family_name", '※姓を正しく入力してください。');
+            $is_error = true;
+        }
+        if($given_name===''){
+            EntryController::errorMessage("given_name", '※名を正しく入力してください。');
+            $is_error = true;
+        }
+        if($zipcode===''){
+            EntryController::errorMessage("zipcode", '※郵便番号を正しく入力してください。');
+            $is_error = true;
+        }
+        if(!preg_match("/^\d{3}\-\d{4}$/", $zipcode)){
+            EntryController::errorMessage("zipcode", '※郵便番号を正しく入力してください。');
+            $is_error = true;
+        }
+        if($prefecture===''){
+            EntryController::errorMessage("prefecture", '※都道府県を選択してください。');
+            $is_error = true;
+        }
+        if($address===''){
+            EntryController::errorMessage("address", '※住所を正しく入力してください。');
+            $is_error = true;
+        }
+        if($tel===''){
+            EntryController::errorMessage("tel", '※電話番号を正しく入力してください。');
+            $is_error = true;
+        }
+        if($email===''){
+            EntryController::errorMessage("email", '※メールアドレスを正しく入力してください。');
+            $is_error = true;
+        }
+        // entry_controllerからのコピー ここまで
+
+        if($email !== $this->Session->read('admin_edit_org_email')){
+            $record_exists = $this->Entry->isExists($this->Session->read('admin_edit_plan'), $email);
+            if($record_exists){
+                EntryController::errorMessage("email", '※このメールアドレスは、このプランの他の応募で使用されています。');
+                $is_error = true;
+            }
+        }
+        if($amount==='' || !is_numeric($amount)){
+            EntryController::errorMessage("amount", '※金額を正しく入力してください。');
+            $is_error = true;
+        }
+
+        if($is_error){
+            return;
+        }
+
+
+        foreach($this->columns() as $column) $this->Session->write('admin_edit_'.$column, ${$column});
+        if(!$doregcancel) return $this->setAction('conf', '1');
+
+    }
+
+    function conf($check=''){
+        if(is_null($this->Session->read('login_login_id'))) return $this->redirect(array('controller' => 'login', 'action' => 'timeout'));
+        if(!$check) die();
+        // 編集前後で変更された項目を判定
+        foreach($this->columns() as $column){
+            if($this->viewVars['entry'][0][0][$column] != $this->Session->read('admin_edit_org_'.$column)){
+                $this->set('change_pre_'.$column, '<span class="changed">');
+                $this->set('change_sur_'.$column, '</span>');
+            }else{
+                $this->set('change_pre_'.$column, '');
+                $this->set('change_sur_'.$column, '');
+            }
+        }
+    }
+
+    function allStatus($check=''){
+        if(is_null($this->Session->read('login_login_id'))) return $this->redirect(array('controller' => 'login', 'action' => 'timeout'));
+        if(!$check) die();
+        // リストのチェックボックス　チェック状況
+        $checked_entries = $this->Session->read('admin_checked_entries');
+        if(is_null($checked_entries)){
+            $checked_entries = array();
+        }
+
+        if(count($checked_entries)==0) return $this->redirect(array('controller' => 'admin', 'action' => 'index'));
+
+        foreach($checked_entries as $entry_id=>$val){
+            $this->Entry->updateEntry($entry_id, 'status', 1);
+        }
+
+        $this->Session->write('admin_checked_entries', array());
+        $this->setAction('success', '支払い済みにしました。');
+    }
+
+    function allNote($check=''){
+        if(is_null($this->Session->read('login_login_id'))) return $this->redirect(array('controller' => 'login', 'action' => 'timeout'));
+        if(!$check) die();
+        // リストのチェックボックス　チェック状況
+        $checked_entries = $this->Session->read('admin_checked_entries');
+        if(is_null($checked_entries)){
+            $checked_entries = array();
+        }
+
+        if(count($checked_entries)==0) return $this->redirect(array('controller' => 'admin', 'action' => 'index'));
+
+        foreach($checked_entries as $entry_id=>$val){
+            $this->Entry->updateEntry($entry_id, 'note', 1);
+        }
+
+        $this->Session->write('admin_checked_entries', array());
+        $this->setAction('success', '通知完了にしました。');
+    }
+
+    function allHandle($check=''){
+        if(is_null($this->Session->read('login_login_id'))) return $this->redirect(array('controller' => 'login', 'action' => 'timeout'));
+        if(!$check) die();
+        // リストのチェックボックス　チェック状況
+        $checked_entries = $this->Session->read('admin_checked_entries');
+        if(is_null($checked_entries)){
+            $checked_entries = array();
+        }
+
+        if(count($checked_entries)==0) return $this->redirect(array('controller' => 'admin', 'action' => 'index'));
+
+        foreach($checked_entries as $entry_id=>$val){
+            $this->Entry->updateEntry($entry_id, 'handle', 1);
+        }
+
+        $this->Session->write('admin_checked_entries', array());
+        $this->setAction('success', '発送完了にしました。');
+    }
+
+    function reg($check='', $entry_id=0){
+        if(is_null($this->Session->read('login_login_id'))) return $this->redirect(array('controller' => 'login', 'action' => 'timeout'));
+        if(!$check) return $this->setAction("index", $this->Session->read('admin_page'));
+        if($entry_id==0) return $this->setAction("index", $this->Session->read('admin_page'));
+
+        $this->set('admin_page', $this->Session->read('admin_page'));
+        $amt = $this->Entry->entryAmount();
+        $this->set('entry_amount', $amt[0][0]['amount']);
+
+        if(!$this->Session->read('admin_edit_family_name')
+        || !$this->Session->read('admin_edit_given_name')
+        || !$this->Session->read('admin_edit_zipcode')
+        || !$this->Session->read('admin_edit_prefecture')
+        || !$this->Session->read('admin_edit_address')
+        || !$this->Session->read('admin_edit_tel')
+        || !$this->Session->read('admin_edit_email')
+        ) return $this->setAction("index", $this->Session->read('admin_page'));
+        
+        $this->Entry->updateEntry($entry_id, 'family_name', $this->Session->read('admin_edit_family_name'));
+        $this->Entry->updateEntry($entry_id, 'given_name', $this->Session->read('admin_edit_given_name'));
+        $this->Entry->updateEntry($entry_id, 'zipcode', $this->Session->read('admin_edit_zipcode'));
+        $this->Entry->updateEntry($entry_id, 'prefecture', $this->Session->read('admin_edit_prefecture'));
+        $this->Entry->updateEntry($entry_id, 'address', $this->Session->read('admin_edit_address'));
+        $this->Entry->updateEntry($entry_id, 'tel', $this->Session->read('admin_edit_tel'));
+        $this->Entry->updateEntry($entry_id, 'email', $this->Session->read('admin_edit_email'));
+        $this->Entry->updateEntry($entry_id, 'amount', $this->Session->read('admin_edit_amount'));
+        $this->Entry->updateEntry($entry_id, 'status', $this->Session->read('admin_edit_status'));
+        $this->Entry->updateEntry($entry_id, 'note', $this->Session->read('admin_edit_note'));
+        $this->Entry->updateEntry($entry_id, 'handle', $this->Session->read('admin_edit_handle'));
+
+        foreach($this->columns() as $column) $this->Session->write('admin_edit_'.$column, '');
+        //return $this->setAction("index", $this->Session->read('admin_page'), "$.jGrowl('更新しました。');");
+    }
+
+    function ajaxAdd(){
+        if(is_null($this->Session->read('login_login_id'))) die('X');
+
+        $checked_entries = $this->Session->read('admin_checked_entries');
+        if(is_null($checked_entries)){
+            $checked_entries = array();
+        }
+
+        $res='0';
+        if(isset($checked_entries[$this->data['entry_id']])){
+            $res='0';
+            unset($checked_entries[$this->data['entry_id']]);
+        }else{
+            $res='1';
+            $checked_entries[$this->data['entry_id']] = $this->data['entry_id'];
+        }
+        $this->Session->write('admin_checked_entries', $checked_entries);
+        die($res);
+    }
+
+    function success($message=''){
+        if(is_null($this->Session->read('login_login_id'))) return $this->redirect(array('controller' => 'login', 'action' => 'timeout'));
+        if(!$message) die();
+        $amt = $this->Entry->entryAmount();
+        $this->set('entry_amount', $amt[0][0]['amount']);
+        $this->set('message', $message);
+    }
+
+    function error($message=''){
+        if(is_null($this->Session->read('login_login_id'))) return $this->redirect(array('controller' => 'login', 'action' => 'timeout'));
+        if(!$message) die();
+        $amt = $this->Entry->entryAmount();
+        $this->set('entry_amount', $amt[0][0]['amount']);
+        $this->set('message', $message);
+    }
+
+
+
+
+
+    function testdata(){
+        for($i=0; $i<121; $i++) $this->Entry->testdata($i);
+        die();
+    }
+
+
+
+    function columns() {
+        return array('family_name'
+                    ,'given_name'
+                    ,'status'
+                    ,'note'
+                    ,'handle'
+                    ,'email'
+                    ,'amount'
+                    ,'zipcode'
+                    ,'prefecture'
+                    ,'address'
+                    ,'tel'
+                    );
+    }
+}
