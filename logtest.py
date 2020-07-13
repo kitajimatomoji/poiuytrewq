@@ -13,7 +13,6 @@ try:
 
     logger = CloudWatch_logger(log_group_name, log_stream_name)
     logger.log(ret)
-    logger.log(ret)
 
 except Exception as e:
     print(e)
