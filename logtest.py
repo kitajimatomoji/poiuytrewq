@@ -1,4 +1,4 @@
-import CloudWatch_logger
+from cloudwatch_logger import CloudWatch_logger
 
 ret = {"trigger":"edit_content"}
 #ret = {"trigger":"application_update"}
