@@ -9,11 +9,14 @@ phases:
       - echo Nothing to do in the pre_build phase...
   build:
     commands:
-      - echo Build started on `date`
-      - echo $LANG
-      - locale -a
-      - locale
-      - grep ja  /usr/share/i18n/SUPPORTED
+      - pip install os
+      - pip install sys
+      - pip install boto3
+      - pip install random
+      - pip install json
+      - pip install time
+      - python logtest.py
+
   post_build:
     commands:
       - echo Build completed on `date`
