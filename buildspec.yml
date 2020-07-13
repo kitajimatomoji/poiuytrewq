@@ -11,7 +11,6 @@ phases:
     commands:
       - pip install --upgrade pip
       - pip install boto3
-      - pip install time
       - python logtest.py
 
   post_build:
