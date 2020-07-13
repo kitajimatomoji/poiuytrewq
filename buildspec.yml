@@ -9,8 +9,8 @@ phases:
       - echo Nothing to do in the pre_build phase...
   build:
     commands:
+      - pip install --upgrade pip
       - pip install boto3
-      - pip install random
       - pip install json
       - pip install time
       - python logtest.py
