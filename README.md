@@ -17,8 +17,8 @@ Utility::log($SPIRAL, __FILE__, __LINE__, $some_flag);
 出力した情報は、 *print* で表示できます。
 
 ## print
-下記コード、 *log* で出力したログを表示できます。
-「ページのソースを表示」モードで表示しましょう。
+下記コード、 *log* で出力したログを表示できます。  
+「ページのソースを表示」モードで表示しましょう。  
 **誰でも参照できる状態にならないよう、配慮をお願いします。**
 
     <!--sample-->
@@ -31,8 +31,7 @@ Utility::log($SPIRAL, __FILE__, __LINE__, $some_flag);
 
 
 # Install
-![Step1](help/sample.PNG)
-
+![Step1](help/sample.PNG)  
 画像を組み込みます。
 * ソースフォルダ：（空白）
 * 名前：Utility.class
