@@ -32,6 +32,7 @@ Utility::log($SPIRAL, __FILE__, __LINE__, $some_flag);
 
 # Install
 ![Step1](help/sample.PNG)
+
 画像を組み込みます。
 * ソースフォルダ：（空白）
 * 名前：Utility.class
