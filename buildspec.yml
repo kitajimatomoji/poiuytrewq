@@ -12,9 +12,9 @@ phases:
       - docker build -t codebuild-test .
   post_build:
     commands:
-      - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 000000000000.dkr.ecr.ap-northeast-1.amazonaws.com
-      - docker tag codebuild-test:latest 000000000000.dkr.ecr.ap-northeast-1.amazonaws.com/codebuild-test:latest
-      - docker push 000000000000.dkr.ecr.ap-northeast-1.amazonaws.com/codebuild-test:latest
+      - aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 661313633896.dkr.ecr.ap-northeast-1.amazonaws.com
+      - docker tag codebuild-test:latest 661313633896.dkr.ecr.ap-northeast-1.amazonaws.com/codebuild-docker:latest
+      - docker push 661313633896.dkr.ecr.ap-northeast-1.amazonaws.com/codebuild-docker:latest
 artifacts:
   type: zip
   files:
