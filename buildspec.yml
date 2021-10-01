@@ -9,9 +9,7 @@ phases:
       - echo Nothing to do in the pre_build phase...
   build:
     commands:
-      - pip install --upgrade pip
-      - pip install boto3
-      - python logtest.py
+      - echo Nothing to do in the build phase...
 
   post_build:
     commands:
