@@ -1,9 +1,6 @@
 FROM centos:centos8
 
-RUN useradd -s /sbin/nologin www && \
-    yum -y install httpd httpd-devel
-
-ADD ./public_html /var/www/html
+RUN useradd -s /sbin/nologin www
 
 EXPOSE 80
 
