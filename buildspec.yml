@@ -6,7 +6,7 @@ env:
 phases:
   install:
     commands:
-      - echo Hello, now $(date "+%Y%m%d.%H%M").
+      - echo Hello, now $(date "+%Y-%m-%d %H:%M").
   pre_build:
     commands:
       - echo Nothing to do in the pre_build phase...
