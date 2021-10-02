@@ -1,9 +1,10 @@
-FROM centos:centos8
+FROM centos:7
 
-RUN useradd -s /sbin/nologin www
+RUN yum update -y && yum clean all
+RUN yum install -y httpd
 
 ADD var_www /var/www
 
 EXPOSE 80
 
-ENTRYPOINT ["/usr/sbin/httpd", "-D", "FOREGROUND"]
+ENTRYPOINT ["/usr/sbin/httpd", "-DFOREGROUND"]
