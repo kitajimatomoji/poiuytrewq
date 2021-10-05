@@ -22,5 +22,6 @@ phases:
       - docker tag ${CONTAINER_NAME}:$IMAGE_TAG $REPOSITORY_URI/${CONTAINER_NAME}:$IMAGE_TAG
       - docker push $REPOSITORY_URI/${CONTAINER_NAME}:$IMAGE_TAG
       - echo "[{\"name\":\"${CONTAINER_NAME}\",\"imageUri\":\"${REPOSITORY_URI}:${IMAGE_TAG}\"}]" > imagedefinitions.json
+      - echo "[{\"name\":\"${CONTAINER_NAME}\",\"imageUri\":\"${REPOSITORY_URI}:${IMAGE_TAG}\"}]"
 artifacts:
   files: imagedefinitions.json
