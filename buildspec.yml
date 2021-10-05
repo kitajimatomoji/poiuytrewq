@@ -15,9 +15,9 @@ phases:
       - REPOSITORY_URI=${ECR_URI}
       - CONTAINER_NAME=codebuild-docker
       - IMAGE_TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION}
-      - echo "REPOSITORY_URI : ${REPOSITORY_URI}"
-      - echo "CONTAINER_NAME : ${CONTAINER_NAME}"
-      - echo "IMAGE_TAG : ${IMAGE_TAG}"
+      - echo REPOSITORY_URI:${REPOSITORY_URI}
+      - echo CONTAINER_NAME:${CONTAINER_NAME}
+      - echo IMAGE_TAG:${IMAGE_TAG}
       - docker build -t ${CONTAINER_NAME}:${IMAGE_TAG} .
   post_build:
     commands:
