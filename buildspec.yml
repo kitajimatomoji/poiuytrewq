@@ -14,7 +14,7 @@ phases:
   build:
     commands:
       - REPOSITORY_URI=${ECR_URI}
-      - IMAGE_TAG=$(date "+%Y%m%d.%H%M")
+      - IMAGE_TAG=$(date "+%Y.%m.%d.%H.%M")
       - echo REPOSITORY_URI:${REPOSITORY_URI}
       - echo CONTAINER_NAME:${CONTAINER_NAME}
       - echo IMAGE_TAG:${IMAGE_TAG}
