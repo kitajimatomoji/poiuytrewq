@@ -1,0 +1,22 @@
+{
+  "executionRoleArn": "arn:aws:iam::661313633896:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "codebuild-docker",
+      "image": "<IMAGE1_NAME>",
+      "portMappings": [
+        {
+          "containerPort": 80,
+          "hostPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "networkMode": "awsvpc",
+  "cpu": "256",
+  "memory": "512",
+  "family": "docker-ecs"
+}
