@@ -10,8 +10,7 @@ phases:
       - echo install..................................
   pre_build:
     commands:
-      - apt-get install -y tzdata
-      - ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
+      - export TZ="Asia/Tokyo"
   build:
     commands:
       - REPOSITORY_URI=${ECR_URI}
