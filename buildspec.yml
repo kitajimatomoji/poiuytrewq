@@ -10,7 +10,7 @@ phases:
       - echo install..................................
   pre_build:
     commands:
-      - echo pre_build..................................
+      - export TZ="Asia/Tokyo"
   build:
     commands:
       - REPOSITORY_URI=${ECR_URI}
@@ -25,7 +25,6 @@ phases:
       - docker tag ${CONTAINER_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}/${CONTAINER_NAME}:${IMAGE_TAG}
       - docker push ${REPOSITORY_URI}/${CONTAINER_NAME}:${IMAGE_TAG}
       - echo "[{\"name\":\"${CONTAINER_NAME}\",\"imageUri\":\"${REPOSITORY_URI}/${CONTAINER_NAME}:${IMAGE_TAG}\"}]" > imagedefinitions.json
-      - echo "{\"Version\":\"1.0\",\"ImageURI\":\"${REPOSITORY_URI}/${CONTAINER_NAME}:${IMAGE_TAG}\"}"  > imageDetail.json
 artifacts:
   files:
     - imagedefinitions.json
