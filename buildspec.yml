@@ -10,7 +10,8 @@ phases:
       - echo install..................................
   pre_build:
     commands:
-      - echo pre_build..................................
+      - apt-get install -y tzdata
+      - ln -sf /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
   build:
     commands:
       - REPOSITORY_URI=${ECR_URI}
@@ -25,7 +26,6 @@ phases:
       - docker tag ${CONTAINER_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}/${CONTAINER_NAME}:${IMAGE_TAG}
       - docker push ${REPOSITORY_URI}/${CONTAINER_NAME}:${IMAGE_TAG}
       - echo "[{\"name\":\"${CONTAINER_NAME}\",\"imageUri\":\"${REPOSITORY_URI}/${CONTAINER_NAME}:${IMAGE_TAG}\"}]" > imagedefinitions.json
-      - echo "{\"Version\":\"1.0\",\"ImageURI\":\"${REPOSITORY_URI}/${CONTAINER_NAME}:${IMAGE_TAG}\"}"  > imageDetail.json
 artifacts:
   files:
     - imagedefinitions.json
